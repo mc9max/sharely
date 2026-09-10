@@ -1,0 +1,11 @@
+{
+  "PORT": {"value": "3000"},
+  "TZ": {"value": "UTC"},
+  "NODE_ENV": {"value": "production"},
+  "UPLOAD_DIR": {"value": "/app/uploads"},
+  "BASE_URL": {"value": "https://${{RAILWAY_PUBLIC_DOMAIN}}"},
+  "SESSION_SECRET": {"value": "${{secret(64)}}"},
+  "MONGODB_URI": {"value": "mongodb://${{mongo.MONGO_APP_USER}}:${{mongo.MONGO_APP_PASSWORD}}@${{mongo.MONGO_PRIVATE_DOMAIN}}:27017/${{mongo.MONGO_DB_NAME}}?authSource=admin"},
+  "ALLOW_REGISTRATION": {"value": "true"},
+  "MAX_FILE_SIZE_MB": {"value": "100"}
+}

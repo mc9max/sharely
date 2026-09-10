@@ -1,0 +1,167 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '@/components/LanguageSelector';
+
+function SignupForm({ className, ...props }) {
+  const { register, smtpEnabled } = useAuth();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const fd = new FormData(e.target);
+    try {
+      await register(fd.get('username'), fd.get('password'), fd.get('confirmPassword'), fd.get('email') || '');
+      navigate('/gallery');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Card className={cn(className)} {...props}>
+      <CardHeader>
+        <CardTitle className="text-2xl">{t('register.title')}</CardTitle>
+        <CardDescription>
+          {t('register.description')}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-6">
+            {error && (
+              <div className="rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="username">{t('register.username')}</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                minLength={3}
+                maxLength={32}
+                autoComplete="username"
+                required
+                autoFocus
+              />
+            </div>
+            {smtpEnabled && (
+              <div className="grid gap-2">
+                <Label htmlFor="email">{t('register.email')}</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                />
+                <p className="text-sm text-muted-foreground">{t('register.emailHint')}</p>
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="password">{t('register.password')}</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                minLength={12}
+                autoComplete="new-password"
+                required
+              />
+              <p className="text-sm text-muted-foreground">
+                {t('register.passwordHint')}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                minLength={12}
+                autoComplete="new-password"
+                required
+              />
+              <p className="text-sm text-muted-foreground">
+                {t('register.confirmPasswordHint')}
+              </p>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <input
+                id="acceptPrivacy"
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              />
+              <label htmlFor="acceptPrivacy" className="text-sm leading-snug cursor-pointer select-none">
+                {t('register.acceptPrivacy')}{' '}
+                <Link to="/privacy" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+                  {t('register.privacyLink')}
+                </Link>
+                {' '}{t('register.acceptPrivacyAnd')}{' '}
+                <Link to="/terms" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+                  {t('register.termsLink')}
+                </Link>
+                {' '}{t('register.acceptPrivacySuffix')}
+              </label>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <input
+                id="ageConfirm"
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              />
+              <label htmlFor="ageConfirm" className="text-sm leading-snug cursor-pointer select-none">
+                {t('register.ageConfirm')}
+              </label>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading || !privacyAccepted || !ageConfirmed}>
+              {loading ? t('register.submitting') : t('register.submit')}
+            </Button>
+          </div>
+          <div className="mt-4 text-center text-sm">
+            {t('register.hasAccount')}{' '}
+            <Link to="/auth/login" className="underline underline-offset-4">
+              {t('register.login')}
+            </Link>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Register() {
+  return (
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <div className="flex justify-end mb-4">
+          <LanguageSelector />
+        </div>
+        <SignupForm />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,14 @@
+{
+  "MONGO_APP_USER": {
+    "description": "Application user created by scripts/mongo-init.js on first start. Connects from the sharely service.",
+    "defaultValue": "appuser"
+  },
+  "MONGO_APP_PASSWORD": {
+    "description": "Password for MONGO_APP_USER. Auto-generated on deploy. Sharely service references it via ${{mongo.MONGO_APP_PASSWORD}} in MONGODB_URI.",
+    "defaultValue": "${{secret(32)}}"
+  },
+  "MONGO_DB_NAME": {
+    "description": "Mongo database name. Both the init script and the sharely service's MONGODB_URI use this.",
+    "defaultValue": "sharely"
+  }
+}

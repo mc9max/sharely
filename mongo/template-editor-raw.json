@@ -1,0 +1,5 @@
+{
+  "MONGO_APP_USER": {"value": "appuser"},
+  "MONGO_APP_PASSWORD": {"value": "${{secret(32)}}"},
+  "MONGO_DB_NAME": {"value": "sharely"}
+}

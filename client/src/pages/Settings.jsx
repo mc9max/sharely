@@ -1,0 +1,637 @@
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faKey, faUser, faTrash, faUpload, faGlobe, faShareNodes,
+  faShield, faDownload, faPencil, faEnvelope, faCircleCheck, faCircleExclamation, faTag, faXmark, faPlus,
+} from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES } from '@/i18n';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+
+export default function Settings() {
+  const { toast } = useToast();
+  const { user, smtpEnabled, refreshUser, logout } = useAuth();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [saving, setSaving] = useState(false);
+
+  const [usernameForm, setUsernameForm] = useState({ newUsername: '', password: '' });
+  const [savingUsername, setSavingUsername] = useState(false);
+
+  const [emailForm, setEmailForm] = useState({ email: '', password: '' });
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
+
+  const avatarInputRef = useRef(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const [embedMode, setEmbedMode] = useState(user?.embedMode || 'embed');
+  const [savingEmbed, setSavingEmbed] = useState(false);
+
+  const [predefinedTags, setPredefinedTags] = useState([]);
+  const [newTagInput, setNewTagInput] = useState('');
+
+  const [exporting, setExporting] = useState(false);
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const [operatorEmail, setOperatorEmail] = useState('');
+
+  useEffect(() => {
+    const emailVerified = searchParams.get('emailVerified');
+    if (emailVerified === 'success') {
+      refreshUser();
+      toast({ title: t('settings.emailVerifiedSuccess') });
+      setSearchParams({}, { replace: true });
+    } else if (emailVerified === 'error') {
+      toast({ title: t('settings.emailVerifiedError'), variant: 'destructive' });
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/site-settings')
+      .then((r) => r.ok ? r.json() : {})
+      .then((data) => setOperatorEmail(data.operatorEmail || ''))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/user/predefined-tags')
+      .then((r) => r.ok ? r.json() : { tags: [] })
+      .then((d) => setPredefinedTags(d.tags || []));
+  }, []);
+
+  async function savePredefinedTags(tags) {
+    await fetch('/api/user/predefined-tags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags }),
+    });
+  }
+
+  function addPredefinedTag(e) {
+    e.preventDefault();
+    const trimmed = newTagInput.trim().slice(0, 50);
+    if (!trimmed || predefinedTags.includes(trimmed) || predefinedTags.length >= 100) return;
+    const next = [...predefinedTags, trimmed];
+    setPredefinedTags(next);
+    setNewTagInput('');
+    savePredefinedTags(next);
+  }
+
+  function removePredefinedTag(tag) {
+    const next = predefinedTags.filter((t) => t !== tag);
+    setPredefinedTags(next);
+    savePredefinedTags(next);
+  }
+
+  async function handleEmbedModeChange(val) {
+    setEmbedMode(val);
+    setSavingEmbed(true);
+    try {
+      const r = await fetch('/api/user/embed-mode', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ embedMode: val }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.embedModeSaved') });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingEmbed(false);
+    }
+  }
+
+  async function handleUsernameSubmit(e) {
+    e.preventDefault();
+    const trimmed = usernameForm.newUsername.trim();
+    if (!trimmed || !usernameForm.password) return;
+    setSavingUsername(true);
+    try {
+      const r = await fetch('/api/user/username', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newUsername: trimmed, password: usernameForm.password }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.usernameChanged') });
+      setUsernameForm({ newUsername: '', password: '' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingUsername(false);
+    }
+  }
+
+  async function handleEmailSubmit(e) {
+    e.preventDefault();
+    if (!emailForm.password) return;
+    setSavingEmail(true);
+    try {
+      const r = await fetch('/api/user/email', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailForm.email.trim(), password: emailForm.password }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.emailSaved') });
+      setEmailForm({ email: '', password: '' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSavingEmail(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setResendingVerification(true);
+    try {
+      await fetch('/api/user/resend-verification', { method: 'POST' });
+      toast({ title: t('settings.emailResent') });
+    } catch {
+      // silent
+    } finally {
+      setResendingVerification(false);
+    }
+  }
+
+  async function handlePasswordSubmit(e) {
+    e.preventDefault();
+    if (form.newPassword !== form.confirmPassword) {
+      toast({ title: t('settings.passwordMismatch'), variant: 'destructive' });
+      return;
+    }
+    if (form.newPassword.length < 12) {
+      toast({ title: t('settings.passwordTooShort'), variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await fetch('/api/user/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      toast({ title: t('settings.passwordChanged') });
+      setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploadingAvatar(true);
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const r = await fetch('/api/user/avatar', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.profileUpdated') });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function handleAvatarRemove() {
+    setUploadingAvatar(true);
+    try {
+      const r = await fetch('/api/user/avatar', { method: 'DELETE' });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refreshUser();
+      toast({ title: t('settings.profileRemoved') });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function handleExportData() {
+    setExporting(true);
+    try {
+      const r = await fetch('/api/user/export');
+      if (!r.ok) throw new Error('Export failed');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cd = r.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match ? match[1] : 'sharely-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!deletePassword) return;
+    setDeleting(true);
+    try {
+      const r = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        throw new Error(r.status === 401 ? t('settings.deleteAccountWrongPassword') : data.error);
+      }
+      toast({ title: t('settings.deleteAccountSuccess') });
+      await logout();
+      navigate('/auth/login');
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+
+      <Tabs defaultValue="profile">
+        <div className="overflow-x-auto pb-1">
+        <TabsList>
+          <TabsTrigger value="profile">
+            <FontAwesomeIcon icon={faUser} className="mr-2 h-3.5 w-3.5" />
+            {t('settings.tabProfile')}
+          </TabsTrigger>
+          <TabsTrigger value="preferences">
+            <FontAwesomeIcon icon={faGlobe} className="mr-2 h-3.5 w-3.5" />
+            {t('settings.tabPreferences')}
+          </TabsTrigger>
+          <TabsTrigger value="security">
+            <FontAwesomeIcon icon={faKey} className="mr-2 h-3.5 w-3.5" />
+            {t('settings.tabSecurity')}
+          </TabsTrigger>
+          <TabsTrigger value="privacy">
+            <FontAwesomeIcon icon={faShield} className="mr-2 h-3.5 w-3.5" />
+            {t('settings.tabPrivacy')}
+          </TabsTrigger>
+        </TabsList>
+        </div>
+
+        {/* ── Profile ── */}
+        <TabsContent value="profile" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faUser} className="h-4 w-4" />{t('settings.profilePicture')}
+              </CardTitle>
+              <CardDescription>{t('settings.profilePictureDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0 border">
+                  {user?.avatarUrl ? (
+                    <img
+                      src={`${user.avatarUrl}?t=${Date.now()}`}
+                      alt="Profile picture"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <FontAwesomeIcon icon={faUser} className="h-7 w-7 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <input ref={avatarInputRef} type="file" accept="image/*" hidden onChange={handleAvatarUpload} />
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}>
+                    <FontAwesomeIcon icon={faUpload} className="h-3.5 w-3.5" />
+                    {uploadingAvatar ? t('settings.uploading') : t('settings.uploadPicture')}
+                  </Button>
+                  {user?.avatarUrl && (
+                    <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={handleAvatarRemove} disabled={uploadingAvatar}>
+                      <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                      {t('settings.removePicture')}
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">{t('settings.pictureHint')}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faPencil} className="h-4 w-4" />{t('settings.changeUsername')}
+              </CardTitle>
+              <CardDescription>{t('settings.changeUsernameDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUsernameSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>{t('settings.currentUsername')}</Label>
+                  <Input value={user?.username ?? ''} readOnly className="cursor-default" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="newUsername">{t('settings.newUsername')}</Label>
+                  <Input id="newUsername" type="text" value={usernameForm.newUsername} onChange={(e) => setUsernameForm((p) => ({ ...p, newUsername: e.target.value }))} minLength={3} maxLength={32} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="usernamePassword">{t('settings.currentPasswordConfirm')}</Label>
+                  <Input id="usernamePassword" type="password" value={usernameForm.password} onChange={(e) => setUsernameForm((p) => ({ ...p, password: e.target.value }))} required />
+                </div>
+                <Button type="submit" disabled={savingUsername}>
+                  {savingUsername ? t('settings.saving') : t('settings.saveUsername')}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {smtpEnabled && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />{t('settings.email')}
+                </CardTitle>
+                <CardDescription>{t('settings.emailDescription')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {user?.email && (
+                  <div className="space-y-1.5 mb-4">
+                    <Label>{t('settings.currentEmail')}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input value={user.email} readOnly className="flex-1 cursor-default" />
+                      {user.emailVerified ? (
+                        <span className="flex items-center gap-1 text-xs text-green-600 font-medium shrink-0">
+                          <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5" />
+                          {t('settings.emailVerifiedBadge')}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-amber-600 font-medium shrink-0">
+                          <FontAwesomeIcon icon={faCircleExclamation} className="h-3.5 w-3.5" />
+                          {t('settings.emailUnverifiedBadge')}
+                        </span>
+                      )}
+                    </div>
+                    {!user.emailVerified && (
+                      <Button variant="outline" size="sm" className="mt-1" onClick={handleResendVerification} disabled={resendingVerification}>
+                        {resendingVerification ? t('settings.saving') : t('settings.emailResend')}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="newEmail">{t('settings.newEmail')}</Label>
+                    <Input id="newEmail" type="email" autoComplete="email" value={emailForm.email} onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="emailPassword">{t('settings.emailCurrentPasswordConfirm')}</Label>
+                    <Input id="emailPassword" type="password" value={emailForm.password} onChange={(e) => setEmailForm((p) => ({ ...p, password: e.target.value }))} required />
+                  </div>
+                  <Button type="submit" disabled={savingEmail}>
+                    {savingEmail ? t('settings.saving') : t('settings.saveEmail')}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ── Preferences ── */}
+        <TabsContent value="preferences" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faGlobe} className="h-4 w-4" />{t('settings.language')}
+              </CardTitle>
+              <CardDescription>{t('settings.languageDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={i18n.resolvedLanguage}
+                onValueChange={(val) => {
+                  i18n.changeLanguage(val);
+                  if (user) {
+                    fetch('/api/user/language', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ language: val }),
+                    }).catch(() => {});
+                  }
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faTag} className="h-4 w-4" />{t('settings.tagManagement')}
+              </CardTitle>
+              <CardDescription>{t('settings.tagManagementDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2 min-h-[2rem]">
+                {predefinedTags.length === 0 && (
+                  <p className="text-xs text-muted-foreground">{t('settings.noTags')}</p>
+                )}
+                {predefinedTags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                    {tag}
+                    <button onClick={() => removePredefinedTag(tag)} className="ml-0.5 hover:text-destructive" aria-label={`Remove tag ${tag}`}>
+                      <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <form onSubmit={addPredefinedTag} className="flex gap-2">
+                <Input
+                  value={newTagInput}
+                  onChange={(e) => setNewTagInput(e.target.value)}
+                  placeholder={t('settings.tagPlaceholder')}
+                  className="h-9 max-w-xs text-sm"
+                  maxLength={50}
+                />
+                <Button type="submit" size="sm" disabled={!newTagInput.trim()} className="gap-1.5">
+                  <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
+                  {t('settings.addTag')}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faShareNodes} className="h-4 w-4" />{t('settings.embedMode')}
+              </CardTitle>
+              <CardDescription>{t('settings.embedModeDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={embedMode} onValueChange={handleEmbedModeChange} disabled={savingEmbed}>
+                <SelectTrigger className="w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="embed">{t('settings.embedModeEmbed')}</SelectItem>
+                  <SelectItem value="raw">{t('settings.embedModeRaw')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Security ── */}
+        <TabsContent value="security" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faKey} className="h-4 w-4" />{t('settings.changePassword')}
+              </CardTitle>
+              <CardDescription>{t('settings.changePasswordDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="currentPassword">{t('settings.currentPassword')}</Label>
+                  <Input id="currentPassword" type="password" value={form.currentPassword} onChange={(e) => setForm((p) => ({ ...p, currentPassword: e.target.value }))} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="newPassword">{t('settings.newPassword')}</Label>
+                  <Input id="newPassword" type="password" value={form.newPassword} onChange={(e) => setForm((p) => ({ ...p, newPassword: e.target.value }))} minLength={12} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword">{t('settings.confirmPassword')}</Label>
+                  <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))} minLength={12} required />
+                </div>
+                <Button type="submit" disabled={saving}>
+                  {saving ? t('settings.saving') : t('settings.savePassword')}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Privacy ── */}
+        <TabsContent value="privacy" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FontAwesomeIcon icon={faShield} className="h-4 w-4" />{t('settings.gdpr')}
+              </CardTitle>
+              <CardDescription>{t('settings.gdprDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium">{t('settings.exportData')}</p>
+                <p className="text-xs text-muted-foreground">{t('settings.exportDataDescription')}</p>
+                <Button variant="outline" size="sm" className="gap-2 mt-2" onClick={handleExportData} disabled={exporting}>
+                  <FontAwesomeIcon icon={faDownload} className="h-3.5 w-3.5" />
+                  {exporting ? t('settings.exporting') : t('settings.exportDataBtn')}
+                </Button>
+              </div>
+
+              {operatorEmail && (
+                <div className="border-t pt-4 space-y-1.5">
+                  <p className="text-sm font-medium">{t('settings.objection')}</p>
+                  <p className="text-xs text-muted-foreground">{t('settings.objectionDescription')}</p>
+                  <a href={`mailto:${operatorEmail}?subject=${encodeURIComponent(t('settings.objectionEmailSubject'))}&body=${encodeURIComponent(t('settings.objectionEmailBody', { username: user?.username }))}`} className="inline-block mt-2">
+                    <Button variant="outline" size="sm">{t('settings.objectionBtn')}</Button>
+                  </a>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.objectionContact')}{' '}
+                    <span className="font-mono">{operatorEmail}</span>
+                  </p>
+                </div>
+              )}
+
+              <div className="border-t pt-4 space-y-1.5">
+                <p className="text-sm font-medium text-destructive">{t('settings.deleteAccount')}</p>
+                <p className="text-xs text-muted-foreground">{t('settings.deleteAccountDescription')}</p>
+                <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setDeletePassword(''); }}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="gap-2 mt-2">
+                      <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                      {t('settings.deleteAccountBtn')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('settings.deleteAccountConfirmTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>{t('settings.deleteAccountConfirmDesc')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-1.5 py-2">
+                      <Label htmlFor="deletePassword">{t('settings.deleteAccountPasswordLabel')}</Label>
+                      <Input id="deletePassword" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} autoFocus />
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={deleting}>{t('settings.deleteAccountCancel')}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+                        disabled={!deletePassword || deleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleting ? t('settings.deleteAccountDeleting') : t('settings.deleteAccountConfirm')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

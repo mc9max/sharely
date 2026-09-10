@@ -1,0 +1,62 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      MONGODB_URI: "mongodb://${MONGO_APP_USER:-appuser}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-sharely}?authSource=${MONGO_DB_NAME:-sharely}"
+      SESSION_SECRET: "${SESSION_SECRET}"
+      BASE_URL: "${BASE_URL:-http://localhost:3000}"
+      MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-100}"
+      ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
+      SITE_NAME: "${SITE_NAME:-sharely}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_SECURE: "${SMTP_SECURE:-false}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "127.0.0.1:27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_ROOT_PASSWORD}"
+      MONGO_INITDB_DATABASE: "${MONGO_DB_NAME:-sharely}"
+      MONGO_APP_USER: "${MONGO_APP_USER:-appuser}"
+      MONGO_APP_PASSWORD: "${MONGO_APP_PASSWORD}"
+      MONGO_DB_NAME: "${MONGO_DB_NAME:-sharely}"
+    volumes:
+      - mongo_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet --eval "db.adminCommand('ping').ok"
+          -u $$MONGO_INITDB_ROOT_USERNAME
+          -p $$MONGO_INITDB_ROOT_PASSWORD
+          --authenticationDatabase admin
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  mongo_data:

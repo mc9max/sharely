@@ -1,0 +1,38 @@
+{
+  "PORT": {
+    "description": "Port the Node/Express server listens on.",
+    "defaultValue": "3000"
+  },
+  "TZ": {
+    "description": "Container timezone (IANA name, e.g. America/Los_Angeles).",
+    "defaultValue": "UTC"
+  },
+  "NODE_ENV": {
+    "description": "Express cookie secure flag is enabled when set to 'production'.",
+    "defaultValue": "production"
+  },
+  "UPLOAD_DIR": {
+    "description": "Filesystem path for uploaded files. Backed by the /uploads Railway volume.",
+    "defaultValue": "/app/uploads"
+  },
+  "BASE_URL": {
+    "description": "Public URL used for invite/verification links. Auto-derived from the Railway public domain.",
+    "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+  },
+  "SESSION_SECRET": {
+    "description": "Express-session signing key. Auto-generated on deploy; rotating invalidates all active sessions.",
+    "defaultValue": "${{secret(64)}}"
+  },
+  "MONGODB_URI": {
+    "description": "Mongo connection string. Auto-wired to the mongo companion service via companion-mapping.json.",
+    "defaultValue": "mongodb://${{mongo.MONGO_APP_USER}}:${{mongo.MONGO_APP_PASSWORD}}@${{mongo.MONGO_PRIVATE_DOMAIN}}:27017/${{mongo.MONGO_DB_NAME}}?authSource=admin"
+  },
+  "ALLOW_REGISTRATION": {
+    "description": "Set to 'false' to disable public signups (admin must invite users).",
+    "defaultValue": "true"
+  },
+  "MAX_FILE_SIZE_MB": {
+    "description": "Per-file upload size cap in megabytes. Single-fs upload, not chunked.",
+    "defaultValue": "100"
+  }
+}
