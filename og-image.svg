@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#15171A"/>
+      <stop offset="100%" stop-color="#6C3FC5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="300" cy="315" r="140" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.15"/>
+  <circle cx="300" cy="315" r="100" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.1"/>
+  <path fill="#ffffff" d="M230 360C230 398.7 261.3 430 300 430L454 430C492.7 430 524 398.7 524 360C524 333.5 506.8 310.7 482 300.1C485.8 292.7 488 284.3 488 275.5C488 245.5 463.5 221 433.5 221C423.8 221 414.6 223.7 406.7 228.4C393.5 202.6 367 185 336.5 185C293 185 257.5 220.5 257.5 264C257.5 268.5 257.9 272.9 258.6 277.2C227.4 288 204.5 318.5 204.5 354.5C204.5 357.4 204.8 360.3 205.2 363C207.2 361.2 230 360 230 360z"/>
+  <text x="600" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="bold" fill="#ffffff">Sharely</text>
+  <text x="600" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#cccccc">Self-hosted file sharing platform</text>
+  <rect x="600" y="370" width="180" height="44" rx="22" fill="#ffffff" fill-opacity="0.15"/>
+  <text x="690" y="398" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#ffffff" text-anchor="middle">🚀 Deploy on Railway</text>
+  <rect x="600" y="440" width="120" height="36" rx="18" fill="#ffffff" fill-opacity="0.1"/>
+  <text x="660" y="464" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#cccccc" text-anchor="middle">ShareX + API</text>
+  <rect x="740" y="440" width="130" height="36" rx="18" fill="#ffffff" fill-opacity="0.1"/>
+  <text x="805" y="464" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#cccccc" text-anchor="middle">MongoDB + Node</text>
+</svg>
