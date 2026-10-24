@@ -1,8 +1,4 @@
 {
-  "PORT": {
-    "description": "Port the Node/Express server listens on.",
-    "defaultValue": "3000"
-  },
   "TZ": {
     "description": "Container timezone (IANA name, e.g. America/Los_Angeles).",
     "defaultValue": "UTC"

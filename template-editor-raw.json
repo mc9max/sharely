@@ -1,11 +1,1 @@
-{
-  "PORT": {"value": "3000"},
-  "TZ": {"value": "UTC"},
-  "NODE_ENV": {"value": "production"},
-  "UPLOAD_DIR": {"value": "/app/uploads"},
-  "BASE_URL": {"value": "https://${{RAILWAY_PUBLIC_DOMAIN}}"},
-  "SESSION_SECRET": {"value": "${{secret(64)}}"},
-  "MONGODB_URI": {"value": "mongodb://appuser:${{mongo.MONGO_APP_PASSWORD}}@${{mongo.RAILWAY_PRIVATE_DOMAIN}}:27017/sharely?authSource=sharely"},
-  "ALLOW_REGISTRATION": {"value": "true"},
-  "MAX_FILE_SIZE_MB": {"value": "100"}
-}
+{"TZ": {"value": "UTC"}, "NODE_ENV": {"value": "production"}, "UPLOAD_DIR": {"value": "/app/uploads"}, "BASE_URL": {"value": "https://${{RAILWAY_PUBLIC_DOMAIN}}"}, "SESSION_SECRET": {"value": "${{secret(64)}}"}, "MONGODB_URI": {"value": "mongodb://appuser:${{mongo.MONGO_APP_PASSWORD}}@${{mongo.RAILWAY_PRIVATE_DOMAIN}}:27017/sharely?authSource=sharely"}, "ALLOW_REGISTRATION": {"value": "true"}, "MAX_FILE_SIZE_MB": {"value": "100"}}
