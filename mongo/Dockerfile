@@ -10,8 +10,11 @@
 
 FROM mongo:7
 
-COPY scripts/mongo-init.js /docker-entrypoint-initdb.d/mongo-init.js:ro
+COPY scripts/mongo-init.js /docker-entrypoint-initdb.d/mongo-init.js
 
+# NOTE: keep the COPY destination plain — a ':ro' suffix here is
+# non-standard Dockerfile syntax and the previous build carrying it
+# never created the app user (entrypoint hook did not fire).
 # No USER directive — official mongo image already runs as the
 # mongodb user and writes /data/db as that user. The Railway volume
 # at /data/db must be root-owned on the host; mongo's entrypoint
