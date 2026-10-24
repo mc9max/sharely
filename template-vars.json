@@ -25,7 +25,7 @@
   },
   "MONGODB_URI": {
     "description": "Mongo connection string. Auto-wired to the mongo companion service via companion-mapping.json.",
-    "defaultValue": "mongodb://${{mongo.MONGO_APP_USER}}:${{mongo.MONGO_APP_PASSWORD}}@${{mongo.RAILWAY_PRIVATE_DOMAIN}}:27017/${{mongo.MONGO_DB_NAME}}?authSource=admin"
+    "defaultValue": "mongodb://appuser:${{mongo.MONGO_APP_PASSWORD}}@${{mongo.RAILWAY_PRIVATE_DOMAIN}}:27017/sharely?authSource=sharely"
   },
   "ALLOW_REGISTRATION": {
     "description": "Set to 'false' to disable public signups (admin must invite users).",
